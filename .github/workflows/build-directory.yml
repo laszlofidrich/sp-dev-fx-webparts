@@ -1,0 +1,59 @@
+name: Build SPFx Directory (auto-detect)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect sample dir and Node version
+        id: detect
+        run: |
+          set -e
+          if [ -f samples/react-people-directory/package.json ]; then
+            SAMPLE_DIR="samples/react-people-directory"
+          elif [ -f samples/react-directory/package.json ]; then
+            SAMPLE_DIR="samples/react-directory"
+          else
+            echo "Could not find people-directory or directory sample under samples/"
+            ls -la samples || true
+            exit 1
+          fi
+          echo "sample_dir=$SAMPLE_DIR" >> $GITHUB_OUTPUT
+          if [ -f "$SAMPLE_DIR/.nvmrc" ]; then
+            NODE_VERSION=$(tr -d 'v \r\n' < "$SAMPLE_DIR/.nvmrc")
+          else
+            NODE_VERSION="18.19.1"
+          fi
+          echo "node_version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          echo "Detected $SAMPLE_DIR with Node $NODE_VERSION"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.detect.outputs.node_version }}
+
+      - name: NPM install
+        working-directory: ${{ steps.detect.outputs.sample_dir }}
+        run: |
+          npm config set legacy-peer-deps true
+          npm ci || npm install --no-audit --no-fund
+
+      - name: Build
+        working-directory: ${{ steps.detect.outputs.sample_dir }}
+        run: npx gulp bundle --ship
+
+      - name: Package
+        working-directory: ${{ steps.detect.outputs.sample_dir }}
+        run: npx gulp package-solution --ship
+
+      - name: Upload .sppkg
+        uses: actions/upload-artifact@v4
+        with:
+          name: sharepoint-solution
+          path: ${{ steps.detect.outputs.sample_dir }}/sharepoint/solution/*.sppkg
