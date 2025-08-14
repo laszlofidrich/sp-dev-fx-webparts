@@ -1,4 +1,4 @@
-name: Build SPFx (People Directory)
+name: Build SPFx (react-directory)
 
 on:
   workflow_dispatch:
@@ -7,37 +7,36 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # All commands below run inside the sample's folder
-    defaults:
-      run:
-        working-directory: samples/react-people-directory
-
     steps:
-      - name: Checkout (sparse to speed up)
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          sparse-checkout: |
-            samples/react-people-directory
-          sparse-checkout-cone-mode: false
 
-      - name: Use Node 16.x (SPFx-compatible)
+      - name: Verify sample folder exists
+        run: |
+          ls -la
+          ls -la samples/react-directory
+
+      - name: Use Node 18.x (SPFx 1.18+)
         uses: actions/setup-node@v4
         with:
-          node-version: '16.20.2'
+          node-version: '18.19.1'
 
-      - name: NPM install (SPFx-friendly flags)
+      - name: Install
+        working-directory: samples/react-directory
         run: |
           npm config set legacy-peer-deps true
           npm install --no-audit --no-fund
 
-      - name: Build & Package
-        run: |
-          npx gulp bundle --ship
-          npx gulp package-solution --ship
+      - name: Build
+        working-directory: samples/react-directory
+        run: npx gulp bundle --ship
 
-      - name: Upload .sppkg artifact
+      - name: Package
+        working-directory: samples/react-directory
+        run: npx gulp package-solution --ship
+
+      - name: Upload .sppkg
         uses: actions/upload-artifact@v4
         with:
           name: sharepoint-solution
-          # path is relative to the REPO ROOT (not working-directory)
-          path: samples/react-people-directory/sharepoint/solution/*.sppkg
+          path: samples/react-directory/sharepoint/solution/*.sppkg
