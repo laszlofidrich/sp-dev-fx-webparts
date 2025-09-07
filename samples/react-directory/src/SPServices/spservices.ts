@@ -4,27 +4,17 @@ import { sp } from '@pnp/sp';
 import { SearchResults, ISearchQuery, SortDirection } from '@pnp/sp/search';
 import { ISPServices } from "./ISPServices";
 
-// === Filtering helpers (add near the top of spservices.ts) ===
+// === Filtering helpers ===
 
-// Add more prefixes later, e.g. '(sz)'
+// Add more prefixes later, e.g. '(sz)' — case-insensitive
 const EXCLUDED_PREFIXES = ['(X)', '(SZ)'];
 
-/** client-side safety check */
-const shouldHideUser = (u: any) => {
-  const name = (u?.displayName ?? '').trim().toLowerCase();
-  const disabled = u?.accountEnabled === false;
-  const badPrefix = EXCLUDED_PREFIXES.some(p => name.startsWith(p.toLowerCase()));
-  return disabled || badPrefix;
+/** filter for SharePoint People Search results */
+const shouldHideUserFromSearch = (u: any) => {
+  const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
+  if (!name) return false;
+  return EXCLUDED_PREFIXES.some(p => name.startsWith(p.toLowerCase()));
 };
-
-/** builds a Graph $filter that excludes disabled users and names starting with our prefixes */
-function buildUsersFilter(): string {
-  const notStarts = EXCLUDED_PREFIXES
-    .map(p => `startswith(displayName,'${p.replace(/'/g, "''")}') eq false`)
-    .join(' and ');
-  // Also exclude Guests if you want: add "and userType eq 'Member'"
-  return `(accountEnabled eq true) and ${notStarts}`;
-}
 
 export class spservices implements ISPServices {
   constructor(private context: WebPartContext) {
@@ -45,15 +35,17 @@ export class spservices implements ISPServices {
     isInitialSearch: boolean
   ): Promise<SearchResults> {
     let qrytext = '';
-    if (isInitialSearch)
+    if (isInitialSearch) {
       qrytext = `FirstName:${searchString}* OR LastName:${searchString}*`;
-    else {
-      if (srchQry) qrytext = srchQry;
-      else {
+    } else {
+      if (srchQry) {
+        qrytext = srchQry;
+      } else {
         if (searchString) qrytext = searchString;
       }
       if (qrytext.length <= 0) qrytext = `*`;
     }
+
     const searchProperties: string[] = [
       'FirstName',
       'LastName',
@@ -71,37 +63,36 @@ export class spservices implements ISPServices {
       'SPS-UserType',
       'GroupId',
     ];
+
     try {
       const users = await sp.search(<ISearchQuery>{
         Querytext: qrytext,
         RowLimit: 500,
         EnableInterleaving: true,
         SelectProperties: searchProperties,
-        SourceId: 'b09a7990-05ea-4af9-81ef-edfab16c4e31',
-        SortList: [
-          { Property: 'LastName', Direction: SortDirection.Ascending },
-        ],
+        SourceId: 'b09a7990-05ea-4af9-81ef-edfab16c4e31', // Local People Results
+        SortList: [{ Property: 'LastName', Direction: SortDirection.Ascending }],
       });
-      if (users && users.PrimarySearchResults.length > 0) {
-        for (
-          let index = 0;
-          index < users.PrimarySearchResults.length;
-          index++
-        ) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          let user: any = users.PrimarySearchResults[index];
-          if (user.PictureURL) {
-            user = {
-              ...user,
-              PictureURL: `/_layouts/15/userphoto.aspx?size=L&accountname=${user.WorkEmail}`,
-            };
-            users.PrimarySearchResults[index] = user;
-          }
-        }
+
+      // Filter out entries like "(X) John Doe" or "(SZ) Jane Doe"
+      if (users?.PrimarySearchResults?.length) {
+        users.PrimarySearchResults = users.PrimarySearchResults
+          .filter(u => !shouldHideUserFromSearch(u))
+          .map(u => {
+            // Normalize photo URL to the large user photo if WorkEmail is present
+            if (u?.PictureURL && u?.WorkEmail) {
+              return {
+                ...u,
+                PictureURL: `/_layouts/15/userphoto.aspx?size=L&accountname=${u.WorkEmail}`,
+              };
+            }
+            return u;
+          });
       }
+
       return users;
     } catch (error) {
-      throw new Error(error);
+      throw new Error(error as any);
     }
   }
 }
