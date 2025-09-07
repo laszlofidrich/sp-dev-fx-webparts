@@ -4,6 +4,28 @@ import { sp } from '@pnp/sp';
 import { SearchResults, ISearchQuery, SortDirection } from '@pnp/sp/search';
 import { ISPServices } from "./ISPServices";
 
+// === Filtering helpers (add near the top of spservices.ts) ===
+
+// Add more prefixes later, e.g. '(sz)'
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)'];
+
+/** client-side safety check */
+const shouldHideUser = (u: any) => {
+  const name = (u?.displayName ?? '').trim().toLowerCase();
+  const disabled = u?.accountEnabled === false;
+  const badPrefix = EXCLUDED_PREFIXES.some(p => name.startsWith(p.toLowerCase()));
+  return disabled || badPrefix;
+};
+
+/** builds a Graph $filter that excludes disabled users and names starting with our prefixes */
+function buildUsersFilter(): string {
+  const notStarts = EXCLUDED_PREFIXES
+    .map(p => `startswith(displayName,'${p.replace(/'/g, "''")}') eq false`)
+    .join(' and ');
+  // Also exclude Guests if you want: add "and userType eq 'Member'"
+  return `(accountEnabled eq true) and ${notStarts}`;
+}
+
 export class spservices implements ISPServices {
   constructor(private context: WebPartContext) {
     sp.setup({
