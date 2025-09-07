@@ -1,15 +1,14 @@
 import { WebPartContext } from "@microsoft/sp-webpart-base";
-
 import { sp } from '@pnp/sp';
 import { SearchResults, ISearchQuery, SortDirection } from '@pnp/sp/search';
 import { ISPServices } from "./ISPServices";
 
-// === Filtering helpers ===
+/* =========================
+   Filtering helpers (People Search)
+   ========================= */
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)']; // edit as needed
 
-// Add more prefixes later, e.g. '(sz)' — case-insensitive
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)'];
-
-/** filter for SharePoint People Search results */
+// People Search typically returns PreferredName/Title fields
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
   if (!name) return false;
@@ -34,6 +33,8 @@ export class spservices implements ISPServices {
     srchQry: string,
     isInitialSearch: boolean
   ): Promise<SearchResults> {
+
+    // Build the query text exactly like your original
     let qrytext = '';
     if (isInitialSearch) {
       qrytext = `FirstName:${searchString}* OR LastName:${searchString}*`;
@@ -74,25 +75,18 @@ export class spservices implements ISPServices {
         SortList: [{ Property: 'LastName', Direction: SortDirection.Ascending }],
       });
 
-      // Filter out entries like "(X) John Doe" or "(SZ) Jane Doe"
-      if (users?.PrimarySearchResults?.length) {
-        users.PrimarySearchResults = users.PrimarySearchResults
-          .filter(u => !shouldHideUserFromSearch(u))
-          .map(u => {
-            // Normalize photo URL to the large user photo if WorkEmail is present
-            if (u?.PictureURL && u?.WorkEmail) {
-              return {
-                ...u,
-                PictureURL: `/_layouts/15/userphoto.aspx?size=L&accountname=${u.WorkEmail}`,
-              };
-            }
-            return u;
-          });
-      }
+      // IMPORTANT:
+      // - Do NOT assign to users.PrimarySearchResults (it's readonly in the type).
+      // - Instead, create a new object with a filtered copy.
+      const primary = (users?.PrimarySearchResults ?? []) as any[];
+      const filtered = primary.filter(u => !shouldHideUserFromSearch(u));
 
-      return users;
-    } catch (error) {
-      throw new Error(error as any);
+      // Return a new SearchResults-like object with the filtered list
+      const out = { ...users, PrimarySearchResults: filtered } as unknown as SearchResults;
+      return out;
+
+    } catch (error: any) {
+      throw (error instanceof Error) ? error : new Error(String(error));
     }
   }
 }
