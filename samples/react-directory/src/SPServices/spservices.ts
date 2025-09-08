@@ -34,15 +34,15 @@ export class spservices implements ISPServices {
     isInitialSearch: boolean
   ): Promise<SearchResults> {
 
-    // Build the query text exactly like your original
+    // Build the query text as in the original
     let qrytext = '';
     if (isInitialSearch) {
       qrytext = `FirstName:${searchString}* OR LastName:${searchString}*`;
     } else {
       if (srchQry) {
         qrytext = srchQry;
-      } else {
-        if (searchString) qrytext = searchString;
+      } else if (searchString) {
+        qrytext = searchString;
       }
       if (qrytext.length <= 0) qrytext = `*`;
     }
@@ -75,14 +75,26 @@ export class spservices implements ISPServices {
         SortList: [{ Property: 'LastName', Direction: SortDirection.Ascending }],
       });
 
-      // IMPORTANT:
-      // - Do NOT assign to users.PrimarySearchResults (it's readonly in the type).
-      // - Instead, create a new object with a filtered copy.
+      // Work on a copy; don't mutate readonly PrimarySearchResults
       const primary = (users?.PrimarySearchResults ?? []) as any[];
-      const filtered = primary.filter(u => !shouldHideUserFromSearch(u));
 
-      // Return a new SearchResults-like object with the filtered list
-      const out = { ...users, PrimarySearchResults: filtered } as unknown as SearchResults;
+      // 1) filter out "(X) ..." / "(SZ) ..." names
+      // 2) normalize PictureURL to the large user photo if WorkEmail exists
+      const filteredAndNormalized = primary
+        .filter(u => !shouldHideUserFromSearch(u))
+        .map(u => {
+          const email = (u?.WorkEmail || '').trim();
+          if (email) {
+            return {
+              ...u,
+              PictureURL: `/_layouts/15/userphoto.aspx?size=L&accountname=${encodeURIComponent(email)}`
+            };
+          }
+          return u; // keep whatever PictureURL came from search
+        });
+
+      // Return a new object with the replaced array
+      const out = { ...users, PrimarySearchResults: filteredAndNormalized } as unknown as SearchResults;
       return out;
 
     } catch (error: any) {
