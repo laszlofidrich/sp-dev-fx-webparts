@@ -1,0 +1,54 @@
+name: Build SPFx (angular-greeting)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "samples/angular-greeting/**"
+      - ".github/workflows/build-spfx.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: samples/angular-greeting
+
+    env:
+      # Adjust if your sample needs a different Node
+      NODE_VERSION: "16.x"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: "samples/angular-greeting/package-lock.json"
+
+      - name: Show versions
+        run: |
+          node -v
+          npm -v
+
+      # SPFx is picky about peer deps; install (not ci) is safer across samples
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build / Bundle (ship)
+        run: |
+          npx gulp clean
+          npx gulp bundle --ship
+
+      - name: Package solution (ship)
+        run: npx gulp package-solution --ship
+
+      - name: Upload .sppkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sppkg-angular-greeting
+          path: samples/angular-greeting/sharepoint/solution/*.sppkg
+          if-no-files-found: error
