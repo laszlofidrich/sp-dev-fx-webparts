@@ -13,8 +13,9 @@ jobs:
     defaults:
       run:
         working-directory: samples/react-news-banner
+
     env:
-      NODE_VERSION: "14.15.5"   # Good for SPFx 1.12.x
+      NODE_VERSION: "14.18.1"             # SPFx 1.12.x sweet spot
       NODE_OPTIONS: "--max_old_space_size=4096"
 
     steps:
@@ -28,7 +29,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: "samples/react-news-banner/package-lock.json"
 
-      # node-gyp v3 requires Python 2.7
+      # node-gyp v3 deps like deasync expect Python 2.x
       - name: Install Python 2.7 and build tools
         run: |
           sudo apt-get update
@@ -43,8 +44,19 @@ jobs:
           npm -v
           python -V || true
 
+      # ---- KEY PATCH: force Gulp 4 toolchain to avoid "primordials" ----
+      # We install gulp@4 + modern vinyl-fs + undertaker before the main install.
+      - name: Preinstall Gulp 4 toolchain (primordials fix)
+        run: |
+          npm install --save-dev gulp@^4.0.2 vinyl-fs@^3.0.3 undertaker@^1.3.0 gulp-cli@^2.3.0
+
       - name: Install dependencies
         run: npm install --legacy-peer-deps
+
+      - name: Verify gulp version
+        run: |
+          npx gulp --version
+          npm ls gulp | cat
 
       - name: Build / Bundle (ship)
         run: |
