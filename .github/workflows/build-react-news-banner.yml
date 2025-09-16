@@ -43,7 +43,30 @@ jobs:
           npm -v
           python -V || true
 
-      # Some older samples still glob for these legacy typings paths
+      # Create legacy typings stubs (some old globs expect these files)
       - name: Create legacy typings stubs (fix old globs)
         run: |
-          mkd
+          mkdir -p typings
+          : > typings/main.d.ts
+          : > typings/tsd.d.ts
+
+      # Avoid "primordials is not defined" by ensuring gulp 4 toolchain
+      - name: Preinstall Gulp 4 toolchain
+        run: |
+          npm install --save-dev gulp@^4.0.2 vinyl-fs@^3.0.3 undertaker@^1.3.0 gulp-cli@^2.3.0
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # node-sass sometimes needs a rebuild on runners
+      - name: Rebuild node-sass (best effort)
+        run: npm rebuild node-sass || true
+
+      - name: Verify gulp version
+        run: |
+          npx gulp --version
+          npm ls gulp | cat
+
+      - name: Build / Bundle (ship)
+        run: |
+          npx gulp clean
