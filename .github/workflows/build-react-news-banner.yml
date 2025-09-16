@@ -1,0 +1,53 @@
+name: Build SPFx (react-news-banner)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "samples/react-news-banner/**"
+      - ".github/workflows/build-react-news-banner.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: samples/react-news-banner
+
+    env:
+      # Adjust if needed based on the SPFx version in this sample's package.json
+      NODE_VERSION: "16.x"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: "samples/react-news-banner/package-lock.json"
+
+      - name: Show versions
+        run: |
+          node -v
+          npm -v
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build / Bundle (ship)
+        run: |
+          npx gulp clean
+          npx gulp bundle --ship
+
+      - name: Package solution (ship)
+        run: npx gulp package-solution --ship
+
+      - name: Upload .sppkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sppkg-react-news-banner
+          path: samples/react-news-banner/sharepoint/solution/*.sppkg
+          if-no-files-found: error
