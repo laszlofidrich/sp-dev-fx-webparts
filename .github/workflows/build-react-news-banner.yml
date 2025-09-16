@@ -9,14 +9,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: samples/react-news-banner
-
     env:
-      # Adjust if needed based on the SPFx version in this sample's package.json
-      NODE_VERSION: "16.x"
+      NODE_VERSION: "14.15.5"   # Good for SPFx 1.12.x
+      NODE_OPTIONS: "--max_old_space_size=4096"
 
     steps:
       - name: Checkout
@@ -29,10 +28,20 @@ jobs:
           cache: "npm"
           cache-dependency-path: "samples/react-news-banner/package-lock.json"
 
+      # node-gyp v3 requires Python 2.7
+      - name: Install Python 2.7 and build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python2 build-essential
+          sudo update-alternatives --install /usr/bin/python python /usr/bin/python2 1
+          npm config set python /usr/bin/python2
+          npm config set unsafe-perm true
+
       - name: Show versions
         run: |
           node -v
           npm -v
+          python -V || true
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
