@@ -43,7 +43,7 @@ jobs:
           npm -v
           python -V || true
 
-      # Create legacy typings stubs (some old globs expect these files)
+      # Some older samples still glob for these legacy typings paths
       - name: Create legacy typings stubs (fix old globs)
         run: |
           mkdir -p typings
@@ -70,3 +70,26 @@ jobs:
       - name: Build / Bundle (ship)
         run: |
           npx gulp clean
+          npx gulp bundle --ship
+
+      - name: Package solution (ship)
+        run: npx gulp package-solution --ship
+
+      # Helpful diagnostics + make it easy to find the file
+      - name: Show where outputs landed
+        run: |
+          echo "Looking for .sppkg under $(pwd)"
+          find . -maxdepth 5 -type f -name "*.sppkg" -print || true
+          echo "--- sharepoint/solution ---"
+          ls -la sharepoint/solution || true
+          echo "--- temp/deploy ---"
+          ls -la temp/deploy || true
+
+      - name: Upload .sppkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sppkg-react-news-banner
+          path: |
+            sharepoint/solution/*.sppkg
+            **/*.sppkg
+          if-no-files-found: error
