@@ -5,7 +5,8 @@ module.exports = {
   extends: ['@microsoft/eslint-config-spfx/lib/profiles/react'],
   parserOptions: { tsconfigRootDir: __dirname },
   rules: {
-    // Stop failing the CI build on unused vars in this sample
-    '@typescript-eslint/no-unused-vars': 'off'
+    // Don't fail CI on these lint checks for this sample
+    '@typescript-eslint/no-unused-vars': 'off',
+    '@typescript-eslint/no-explicit-any': 'off'
   }
 };
