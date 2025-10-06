@@ -53,6 +53,18 @@ jobs:
           # Avoid CI aborting on any non-critical stderr noise
           CI: ""
 
+      - name: Make web part visible + bump version
+        run: |
+          # 1) Patch manifest so the web part always shows in the toolbox
+          node -e "const fs=require('fs');const p='src/webparts/scriptEditor/ScriptEditorWebPart.manifest.json';let m=JSON.parse(fs.readFileSync(p,'utf8'));m.hiddenFromToolbox=false;m.requiresCustomScript=false;m.supportedHosts=m.supportedHosts||[];if(!m.supportedHosts.includes('SharePointWebPart'))m.supportedHosts.push('SharePointWebPart');fs.writeFileSync(p,JSON.stringify(m,null,2));console.log('Patched',p,m);"
+          
+          # 2) Bump solution version so sites see an upgrade
+          node -e "const fs=require('fs');const p='config/package-solution.json';let j=JSON.parse(fs.readFileSync(p,'utf8'));let v=(j.solution.version||'1.0.0.0').split('.').map(x=>parseInt(x,10));v[3]=(v[3]||0)+1;j.solution.version=v.join('.');fs.writeFileSync(p,JSON.stringify(j,null,2));console.log('New solution version',j.solution.version);"
+
+          # 3) Show the final values for quick sanity
+          node -e "const m=require('./src/webparts/scriptEditor/ScriptEditorWebPart.manifest.json');console.log({requiresCustomScript:m.requiresCustomScript, hiddenFromToolbox:m.hiddenFromToolbox, supportedHosts:m.supportedHosts});"
+
+
       - name: Upload sppkg artifact
         uses: actions/upload-artifact@v4
         with:
