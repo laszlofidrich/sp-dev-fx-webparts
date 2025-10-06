@@ -1,0 +1,38 @@
+name: Build SPFx package (react-script-editor)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: samples/react-script-editor
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 18 (SPFx-compatible)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: |
+            samples/react-script-editor/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build & package (ship)
+        run: |
+          npx gulp bundle --ship
+          npx gulp package-solution --ship
+
+      - name: Upload sppkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spfx-sppkg
+          path: samples/react-script-editor/sharepoint/solution/*.sppkg
