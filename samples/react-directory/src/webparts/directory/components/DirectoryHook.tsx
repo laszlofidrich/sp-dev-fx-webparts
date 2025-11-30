@@ -55,7 +55,7 @@ const useFluentStyles = makeStyles({
 /* =========================
    Safety-net filter for names
    ========================= */
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)','(ADM)']; // edit as needed
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)','ADM']; // edit as needed
 
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
