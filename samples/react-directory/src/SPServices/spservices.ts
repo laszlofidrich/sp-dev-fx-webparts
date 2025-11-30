@@ -6,7 +6,7 @@ import { ISPServices } from "./ISPServices";
 /* =========================
    Filtering helpers (People Search)
    ========================= */
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)']; // edit as needed
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)','(ADM)']; // edit as needed
 
 // People Search typically returns PreferredName/Title fields
 const shouldHideUserFromSearch = (u: any) => {
