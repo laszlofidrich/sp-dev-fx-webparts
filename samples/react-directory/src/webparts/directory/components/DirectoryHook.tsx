@@ -60,7 +60,7 @@ const useFluentStyles = makeStyles({
 const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS'];
 
 // Csak ezek a domainek legyenek láthatók (több is mehet)
-const ALLOWED_EMAIL_DOMAINS = ['xy.com'];
+const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
 
 // Prefix szűrő
 const shouldHideUserFromSearch = (u: any) => {
