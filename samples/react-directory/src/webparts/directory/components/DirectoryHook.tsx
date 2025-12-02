@@ -60,7 +60,7 @@ const useFluentStyles = makeStyles({
 const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS'];
 
 // Csak ezek a domainek legyenek láthatók (több is mehet)
-const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
+const ALLOWED_EMAIL_DOMAINS = ['xy.com'];
 
 // Prefix szűrő
 const shouldHideUserFromSearch = (u: any) => {
@@ -223,40 +223,25 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
               : [props.clearTextSearchProps];
 
           if (tmpCTProps.length > 0) {
-            searchProps.map((srchprop, index) => {
-              const ctPresent: any[] = tmpCTProps.filter((o) => {
-                return o.toLowerCase() === srchprop.toLowerCase();
-              });
+            searchProps.forEach((srchprop, index) => {
+              const ctPresent: any[] = tmpCTProps.filter((o) => o.toLowerCase() === srchprop.toLowerCase());
               if (ctPresent.length > 0) {
-                if (index === searchProps.length - 1) {
-                  qryText += `${srchprop}:${searchText}*`;
-                } else {
-                  qryText += `${srchprop}:${searchText}* OR `;
-                }
+                qryText += `${srchprop}:${searchText}*`;
               } else {
-                if (index === searchProps.length - 1) {
-                  qryText += `${srchprop}:${finalSearchText}*`;
-                } else {
-                  qryText += `${srchprop}:${finalSearchText}* OR `;
-                }
+                qryText += `${srchprop}:${finalSearchText}*`;
               }
+              if (index !== searchProps.length - 1) qryText += ' OR ';
             });
           } else {
-            searchProps.map((srchprop, index) => {
-              if (index === searchProps.length - 1) {
-                qryText += `${srchprop}:${finalSearchText}*`;
-              } else {
-                qryText += `${srchprop}:${finalSearchText}* OR `;
-              }
+            searchProps.forEach((srchprop, index) => {
+              qryText += `${srchprop}:${finalSearchText}*`;
+              if (index !== searchProps.length - 1) qryText += ' OR ';
             });
           }
         } else {
-          searchProps.map((srchprop, index) => {
-            if (index === searchProps.length - 1) {
-              qryText += `${srchprop}:${finalSearchText}*`;
-            } else {
-              qryText += `${srchprop}:${finalSearchText}* OR `;
-            }
+          searchProps.forEach((srchprop, index) => {
+            qryText += `${srchprop}:${finalSearchText}*`;
+            if (index !== searchProps.length - 1) qryText += ' OR ';
           });
         }
 
@@ -306,23 +291,20 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
     let _users = [...state.users];
     _users = _users.sort((a: any, b: any) => {
       switch (sortField) {
-        case 'Location':
-          if ((a.BaseOfficeLocation || '').toUpperCase() < (b.BaseOfficeLocation || '').toUpperCase()) {
-            return -1;
-          }
-          if ((a.BaseOfficeLocation || '').toUpperCase() > (b.BaseOfficeLocation || '').toUpperCase()) {
-            return 1;
-          }
+        case 'Location': {
+          const aVal = (a.BaseOfficeLocation || '').toUpperCase();
+          const bVal = (b.BaseOfficeLocation || '').toUpperCase();
+          if (aVal < bVal) return -1;
+          if (aVal > bVal) return 1;
           return 0;
-
-        default:
-          if ((a[sortField] || '').toUpperCase() < (b[sortField] || '').toUpperCase()) {
-            return -1;
-          }
-          if ((a[sortField] || '').toUpperCase() > (b[sortField] || '').toUpperCase()) {
-            return 1;
-          }
+        }
+        default: {
+          const aVal = (a[sortField] || '').toUpperCase();
+          const bVal = (b[sortField] || '').toUpperCase();
+          if (aVal < bVal) return -1;
+          if (aVal > bVal) return 1;
           return 0;
+        }
       }
     });
     setstate({ ...state, users: _users, searchString: sortField });
@@ -375,7 +357,7 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
           className={styles.searchTextBox}
           value={state.searchText}
           onKeyDown={handleSearchKeyPress}
-          onChange={(_, data) => _searchBoxChanged(data.value as string)}
+          onChange={(_, data) => _searchBoxChanged((data?.value as string) ?? '')}
         />
         <div className={mergeClasses(fluentStyles.alphabets, fluentStyles.horizontal)}>
           <Overflow minimumVisible={2}>
@@ -384,15 +366,13 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
               onTabSelect={_alphabetChange}
               className={fluentStyles.tabList}
             >
-              {az.map((index: string) => {
-                return (
-                  <OverflowItem key={index} id={index}>
-                    <Tab value={index} key={index}>
-                      {index}
-                    </Tab>
-                  </OverflowItem>
-                );
-              })}
+              {az.map((index: string) => (
+                <OverflowItem key={index} id={index}>
+                  <Tab value={index} key={index}>
+                    {index}
+                  </Tab>
+                </OverflowItem>
+              ))}
               <OverflowAlphabetsMenu onTabSelect={_alphabetChange} tabs={az} />
             </TabList>
           </Overflow>
@@ -438,4 +418,39 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
                           value={state.searchString}
                           onOptionSelect={onOptionSelect}
                         >
-                          {orderOptions.map(
+                          {orderOptions.map((option: any) => (
+                            <Option key={option.value} value={option.value}>
+                              {option.text}
+                            </Option>
+                          ))}
+                        </Dropdown>
+                      </Field>
+                    </Stack>
+                  </div>
+                  <Stack
+                    horizontal
+                    horizontalAlign={props.useSpaceBetween ? 'space-between' : 'center'}
+                    wrap
+                    tokens={wrapStackTokens}
+                  >
+                    {diretoryGrid}
+                  </Stack>
+                  <div style={{ width: '100%', display: 'inline-block' }}>
+                    <Paging
+                      totalItems={state.users.length}
+                      itemsCountPerPage={pageSize}
+                      onPageUpdate={_onPageUpdate}
+                      currentPage={currentPage}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default DirectoryHook;
