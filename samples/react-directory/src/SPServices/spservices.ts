@@ -6,13 +6,39 @@ import { ISPServices } from "./ISPServices";
 /* =========================
    Filtering helpers (People Search)
    ========================= */
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)','ADM','guest','UPS']; // edit as needed
 
-// People Search typically returns PreferredName/Title fields
+// NÉV ELEJI PREFIXEK kizárása (kis/nagybetű nem számít)
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS']; // ha tényleg prefixek, maradhat így
+
+// CSAK EZEK A DOMAINEK legyenek láthatók
+const ALLOWED_EMAIL_DOMAINS = ['value4real.com']; // <-- Állítsd a sajátodra (több is mehet: ['xy.com','contoso.com'])
+
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
   if (!name) return false;
   return EXCLUDED_PREFIXES.some(p => name.startsWith(p.toLowerCase()));
+};
+
+// People Search-ből “email-szerű” érték kiválasztása
+const getBestEmailLike = (u: any): string => {
+  const email = (u?.WorkEmail ?? '').trim();
+  const upnLike = (u?.UserName ?? u?.AccountName ?? '').trim(); // claims / UPN jellegű érték
+  return email || upnLike;
+};
+
+// claims formátum kezelése és domain kinyerése
+const extractDomain = (val: string): string => {
+  if (!val) return '';
+  let s = val;
+  const pipeIdx = s.lastIndexOf('|'); // pl. i:0#.f|membership|user@contoso.com
+  if (pipeIdx >= 0) s = s.substring(pipeIdx + 1);
+  const atIdx = s.lastIndexOf('@');
+  return atIdx >= 0 ? s.substring(atIdx + 1).toLowerCase() : '';
+};
+
+const isAllowedDomain = (u: any): boolean => {
+  const d = extractDomain(getBestEmailLike(u));
+  return d.length > 0 && ALLOWED_EMAIL_DOMAINS.some(ad => ad.toLowerCase() === d);
 };
 
 export class spservices implements ISPServices {
@@ -63,6 +89,8 @@ export class spservices implements ISPServices {
       'BaseOfficeLocation',
       'SPS-UserType',
       'GroupId',
+      'UserName',
+      'AccountName',
     ];
 
     try {
@@ -78,10 +106,10 @@ export class spservices implements ISPServices {
       // Work on a copy; don't mutate readonly PrimarySearchResults
       const primary = (users?.PrimarySearchResults ?? []) as any[];
 
-      // 1) filter out "(X) ..." / "(SZ) ..." names
-      // 2) normalize PictureURL to the large user photo if WorkEmail exists
+      // 1) prefix szűrés  2) domain szűrés  3) fotó normalizálás
       const filteredAndNormalized = primary
         .filter(u => !shouldHideUserFromSearch(u))
+        .filter(u => isAllowedDomain(u))
         .map(u => {
           const email = (u?.WorkEmail || '').trim();
           if (email) {
@@ -90,7 +118,7 @@ export class spservices implements ISPServices {
               PictureURL: `/_layouts/15/userphoto.aspx?size=L&accountname=${encodeURIComponent(email)}`
             };
           }
-          return u; // keep whatever PictureURL came from search
+          return u; // fallback: marad az eredeti PictureURL
         });
 
       // Return a new object with the replaced array
