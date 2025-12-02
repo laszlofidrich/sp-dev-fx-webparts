@@ -53,14 +53,42 @@ const useFluentStyles = makeStyles({
 });
 
 /* =========================
-   Safety-net filter for names
+   Safety-net filters
    ========================= */
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)','ADM','guest','UPS']; // edit as needed
 
+// Név eleji prefixek kizárása (kis/nagybetű mindegy)
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS'];
+
+// Csak ezek a domainek legyenek láthatók (több is mehet)
+const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
+
+// Prefix szűrő
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
   if (!name) return false;
   return EXCLUDED_PREFIXES.some((p) => name.startsWith(p.toLowerCase()));
+};
+
+// E-mail/UPN-szerű érték kiválasztása
+const getBestEmailLike = (u: any): string => {
+  const email = (u?.WorkEmail ?? '').trim();
+  const upnLike = (u?.UserName ?? u?.AccountName ?? '').trim();
+  return email || upnLike;
+};
+
+// Claims formátum kezelése, domain kinyerése
+const extractDomain = (val: string): string => {
+  if (!val) return '';
+  let s = val;
+  const pipeIdx = s.lastIndexOf('|'); // pl. i:0#.f|membership|user@contoso.com
+  if (pipeIdx >= 0) s = s.substring(pipeIdx + 1);
+  const atIdx = s.lastIndexOf('@');
+  return atIdx >= 0 ? s.substring(atIdx + 1).toLowerCase() : '';
+};
+
+const isAllowedDomain = (u: any): boolean => {
+  const d = extractDomain(getBestEmailLike(u));
+  return d.length > 0 && ALLOWED_EMAIL_DOMAINS.some((ad) => ad.toLowerCase() === d);
 };
 
 const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
@@ -160,7 +188,9 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
 
     const cleaned =
       users && users.PrimarySearchResults
-        ? users.PrimarySearchResults.filter((u: any) => !shouldHideUserFromSearch(u))
+        ? users.PrimarySearchResults
+            .filter((u: any) => !shouldHideUserFromSearch(u))
+            .filter((u: any) => isAllowedDomain(u))
         : [];
 
     setstate({
@@ -234,7 +264,9 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
 
         const cleaned =
           users && users.PrimarySearchResults
-            ? users.PrimarySearchResults.filter((u: any) => !shouldHideUserFromSearch(u))
+            ? users.PrimarySearchResults
+                .filter((u: any) => !shouldHideUserFromSearch(u))
+                .filter((u: any) => isAllowedDomain(u))
             : [];
 
         setstate({
@@ -406,39 +438,4 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
                           value={state.searchString}
                           onOptionSelect={onOptionSelect}
                         >
-                          {orderOptions.map((option: any) => (
-                            <Option key={option.value} value={option.value}>
-                              {option.text}
-                            </Option>
-                          ))}
-                        </Dropdown>
-                      </Field>
-                    </Stack>
-                  </div>
-                  <Stack
-                    horizontal
-                    horizontalAlign={props.useSpaceBetween ? 'space-between' : 'center'}
-                    wrap
-                    tokens={wrapStackTokens}
-                  >
-                    {diretoryGrid}
-                  </Stack>
-                  <div style={{ width: '100%', display: 'inline-block' }}>
-                    <Paging
-                      totalItems={state.users.length}
-                      itemsCountPerPage={pageSize}
-                      onPageUpdate={_onPageUpdate}
-                      currentPage={currentPage}
-                    />
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </>
-      )}
-    </div>
-  );
-};
-
-export default DirectoryHook;
+                          {orderOptions.map(
