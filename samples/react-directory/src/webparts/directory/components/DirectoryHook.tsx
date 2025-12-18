@@ -57,7 +57,7 @@ const useFluentStyles = makeStyles({
    ========================= */
 
 // Név eleji prefixek kizárása (kis/nagybetű mindegy)
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS'];
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt'];
 
 // Csak ezek a domainek legyenek láthatók (több is mehet)
 const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
@@ -142,7 +142,7 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
                 PictureUrl: user.PictureURL,
                 Email: user.WorkEmail,
                 Department: user.Department,
-                WorkPhone: user.WorkPhone,
+                WorkPhone: user.MobilePhone,
                 Location: user.OfficeNumber ? user.OfficeNumber : user.BaseOfficeLocation,
               }}
             />
