@@ -57,7 +57,7 @@ const useFluentStyles = makeStyles({
    ========================= */
 
 // Név eleji prefixek kizárása (kis/nagybetű mindegy)
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt'];
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt','Test'];
 
 // Csak ezek a domainek legyenek láthatók (több is mehet)
 const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
