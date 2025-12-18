@@ -5,12 +5,11 @@
   margin-top: 15px;
   margin-right: 15px;
 
-  /* kicsit nagyobb kártyaszélesség */
+  /* kicsit szélesebb kártya */
   min-width: 340px;
   max-width: 340px;
   vertical-align: top;
 
-  /* mobilon engedjük 100% szélességre */
   @media (max-width: 480px) {
     min-width: 100%;
     max-width: 100%;
@@ -23,55 +22,53 @@
   width: 100%;
   max-width: 380px;
 
-  /* legyen rugalmas a magasság, de ne legyen túl alacsony */
+  /* rugalmas magasság, de ne legyen túl alacsony */
   height: auto;
   min-height: 160px;
 
   display: flex;
   flex-direction: row;
-  align-items: stretch; /* a belső oszlop tölthesse ki a magasságot */
+  align-items: stretch;
   justify-content: flex-start;
 
-  /* normális belső margók (az eddigi 5rem túl nagy volt) */
+  /* ésszerű belső margók (a régi 5rem túl nagy volt) */
   padding: 16px 16px 12px 22px;
-
-  /* kicsi kerekítés/árnyék ha szeretnéd
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.08);
-  */
 }
 
 .bottomColor {
   background-color: $ms-color-themeDark;
   height: 5px;
-  margin-top: 10px; /* hiányzó px javítva */
+  margin-top: 10px;
   width: 100%;
 }
 
+/* Hosszú név/titulus/department 2 sorig, szépen tördelve */
 .textOverflow {
-  /* hosszú nevek/titulusok kezelése */
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: normal;
-
-  /* ne törjön minden karakter után */
   word-break: break-word;
 
-  /* max 2 sorban jelenjen meg */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
+/* A jobb oldali szöveges rész */
 .personaDetails {
   display: flex;
   flex-direction: column;
-  row-gap: 0.25rem; /* picit nagyobb szellőzés */
-
-  /* Foglalja ki a rendelkezésre álló helyet,
-     és tolja le a footer/others szekciót az aljára */
+  row-gap: 0.25rem;
   flex: 1 1 auto;
-  justify-content: space-between;
+  justify-content: space-between; /* header fent, footer lent */
+}
+
+/* ÚJ: ezek kellenek a TSX-hez */
+.header {
+  margin-bottom: 6px;
+}
+.footer {
+  margin-top: 6px;
 }
 
 .others {
@@ -79,10 +76,5 @@
   display: flex;
   align-items: center;
   column-gap: .4rem;
-
-  /* felső elválasztás, hogy ne ütközzön a címmel */
-  margin-top: 6px;
-
-  /* ha több sor lenne benne, szépen törjön */
   word-break: break-word;
 }
