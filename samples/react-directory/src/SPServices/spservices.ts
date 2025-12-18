@@ -8,7 +8,7 @@ import { ISPServices } from "./ISPServices";
    ========================= */
 
 // NÉV ELEJI PREFIXEK kizárása (kis/nagybetű nem számít)
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS']; // ha tényleg prefixek, maradhat így
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS','Test','Teszt']; // ha tényleg prefixek, maradhat így
 
 // CSAK EZEK A DOMAINEK legyenek láthatók
 const ALLOWED_EMAIL_DOMAINS = ['value4real.com']; // <-- Állítsd a sajátodra (több is mehet: ['xy.com','contoso.com'])
