@@ -199,10 +199,10 @@ export default class DirectoryWebPart extends BaseClientSideWebPart<IDirectoryWe
                 PropertyPaneSlider('pageSize', {
                   label: 'Results per page',
                   showValue: true,
-                  max: 20,
+                  max: 50,
                   min: 2,
                   step: 2,
-                  value: this.properties.pageSize,
+                  value: this.properties.pageSize ?? 10,
                 }),
               ],
             },
