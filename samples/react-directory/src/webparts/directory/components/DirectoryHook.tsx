@@ -142,7 +142,7 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
                 PictureUrl: user.PictureURL,
                 Email: user.WorkEmail,
                 Department: user.Department,
-                WorkPhone: user.MobilePhone,
+                WorkPhone: user.MobilePhone || user.WorkPhone,
                 Location: user.OfficeNumber ? user.OfficeNumber : user.BaseOfficeLocation,
               }}
             />
