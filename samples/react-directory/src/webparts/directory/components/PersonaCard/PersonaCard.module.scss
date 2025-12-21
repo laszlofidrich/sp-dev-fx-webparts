@@ -24,7 +24,7 @@
 
   /* rugalmas magasság, de ne legyen túl alacsony */
   height: auto;
-  min-height: 160px;
+  min-height: 140px;
 
   display: flex;
   flex-direction: row;
@@ -60,7 +60,7 @@
   flex-direction: column;
   row-gap: 0.25rem;
   flex: 1 1 auto;
-  justify-content: space-between; /* header fent, footer lent */
+  justify-content: flex-start; /* header fent, footer lent */
 }
 
 /* ÚJ: ezek kellenek a TSX-hez */
