@@ -8,10 +8,10 @@ import { ISPServices } from "./ISPServices";
    ========================= */
 
 // NÉV ELEJI PREFIXEK kizárása (kis/nagybetű nem számít)
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS','Test','Teszt']; // ha tényleg prefixek, maradhat így
+const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Test', 'Teszt'];
 
 // CSAK EZEK A DOMAINEK legyenek láthatók
-const ALLOWED_EMAIL_DOMAINS = ['value4real.com']; // <-- Állítsd a sajátodra (több is mehet: ['xy.com','contoso.com'])
+const ALLOWED_EMAIL_DOMAINS = ['value4real.com']; // <-- bővíthető: ['xy.com','contoso.com']
 
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
@@ -60,7 +60,7 @@ export class spservices implements ISPServices {
     isInitialSearch: boolean
   ): Promise<SearchResults> {
 
-    // Build the query text as in the original
+    // Query text
     let qrytext = '';
     if (isInitialSearch) {
       qrytext = `FirstName:${searchString}* OR LastName:${searchString}*`;
@@ -81,7 +81,11 @@ export class spservices implements ISPServices {
       'OfficeNumber',
       'PictureURL',
       'WorkPhone',
+      // mobil minden lehetséges neve:
       'MobilePhone',
+      'CellPhone',
+      'SPS-CellPhone',
+      'SPS-MOBILEPHONE',
       'JobTitle',
       'Department',
       'Skills',
@@ -103,25 +107,35 @@ export class spservices implements ISPServices {
         SortList: [{ Property: 'LastName', Direction: SortDirection.Ascending }],
       });
 
-      // Work on a copy; don't mutate readonly PrimarySearchResults
       const primary = (users?.PrimarySearchResults ?? []) as any[];
 
-      // 1) prefix szűrés  2) domain szűrés  3) fotó normalizálás
       const filteredAndNormalized = primary
-        .filter(u => !shouldHideUserFromSearch(u))
-        .filter(u => isAllowedDomain(u))
+        .filter(u => !shouldHideUserFromSearch(u)) // prefix
+        .filter(u => isAllowedDomain(u))           // domain
         .map(u => {
+          // fotó URL normalizálás
           const email = (u?.WorkEmail || '').trim();
-          if (email) {
-            return {
-              ...u,
-              PictureURL: `/_layouts/15/userphoto.aspx?size=L&accountname=${encodeURIComponent(email)}`
-            };
-          }
-          return u; // fallback: marad az eredeti PictureURL
+          const picture = email
+            ? `/_layouts/15/userphoto.aspx?size=L&accountname=${encodeURIComponent(email)}`
+            : u?.PictureURL;
+
+          // mobil egységesítése
+          const unifiedMobile =
+            (u?.MobilePhone ||
+             u?.CellPhone ||
+             u?.['SPS-CellPhone'] ||
+             u?.['SPS-MOBILEPHONE'] ||
+             ''
+            ).toString().trim();
+
+          return {
+            ...u,
+            PictureURL: picture,
+            MobilePhone: unifiedMobile, // innen kezdve mindig legyen kitöltve, ha van bármelyik forrásban
+          };
         });
 
-      // Return a new object with the replaced array
+      // új példány visszaadása, nem írjuk felül a readonly mezőt helyben
       const out = { ...users, PrimarySearchResults: filteredAndNormalized } as unknown as SearchResults;
       return out;
 
