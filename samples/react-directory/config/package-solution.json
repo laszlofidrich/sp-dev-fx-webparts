@@ -15,12 +15,8 @@
     "skipFeatureDeployment": true,
     "isDomainIsolated": false,
     "metadata": {
-      "shortDescription": {
-        "default": "react-directory description"
-      },
-      "longDescription": {
-        "default": "react-directory description"
-      },
+      "shortDescription": { "default": "react-directory description" },
+      "longDescription": { "default": "react-directory description" },
       "screenshotPaths": [],
       "videoUrl": "",
       "categories": []
@@ -33,12 +29,12 @@
         "version": "4.0.0.0",
         "componentIds": ["fae479bf-405f-4f80-a086-eea22eff3d6f"]
       }
+    ],
+    "webApiPermissionRequests": [
+      { "resource": "Microsoft Graph", "scope": "User.Read.All" }
     ]
   },
   "paths": {
     "zippedPackage": "solution/react-directory.sppkg"
   }
 }
-"webApiPermissionRequests": [
-  { "resource": "Microsoft Graph", "scope": "User.Read.All" }
-]
