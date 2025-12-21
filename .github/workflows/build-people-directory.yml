@@ -19,22 +19,34 @@ jobs:
           ls -la
           ls -la samples/react-directory
 
-      - name: Use Node 18.x (SPFx 1.18+)
+      # ⚠️ SPFx 1.17.x => Node 16.x (ne 18!)
+      - name: Use Node 16 for SPFx 1.17.x
         uses: actions/setup-node@v4
         with:
-          node-version: '18.19.1'
+          node-version: '16.20.2'
+          cache: 'npm'
+          cache-dependency-path: samples/react-directory/package-lock.json
 
-      - name: Install
+      # Stabil NPM config + SPFx kompat
+      - name: NPM config for SPFx
         working-directory: samples/react-directory
         run: |
           npm config set legacy-peer-deps true
-          npm install --no-audit --no-fund
+          npm config set registry https://registry.npmjs.org/
+          npm config set fetch-timeout 600000
+          npm config set fetch-retry-maxtimeout 600000
+          npm config set prefer-online true
 
-      # --- key part: ignore warnings-as-errors from gulp bundle ---
+      # Telepítés (lockfile alapján). Ha net hiba van, egy retry.
+      - name: Install (npm ci)
+        working-directory: samples/react-directory
+        run: |
+          npm ci --no-audit --no-fund || npm ci --no-audit --no-fund
+
       - name: Clean & Bundle (SHIP)
         working-directory: samples/react-directory
         env:
-          CI: "false"                           # don't fail the step on stderr warnings
+          CI: "false"   # ne kezelje warningot hibaként
         run: |
           npx gulp clean
           npx gulp bundle --ship --verbose || echo "Ignoring non-zero exit due to warnings"
@@ -42,13 +54,13 @@ jobs:
           ls -la release || true
           ls -la release/manifests || true
 
-      # Guard: only proceed if manifests exist (so real TS errors still fail)
+      # Csak akkor megyünk tovább, ha tényleg lett manifest
       - name: Ensure manifests exist
         working-directory: samples/react-directory
         run: |
           test -d release/manifests && test "$(ls -1 release/manifests | wc -l)" -gt 0 || (echo "Bundle did not emit release/manifests/*.json" && exit 1)
 
-      - name: Package
+      - name: Package solution (SHIP)
         working-directory: samples/react-directory
         run: npx gulp package-solution --ship
 
