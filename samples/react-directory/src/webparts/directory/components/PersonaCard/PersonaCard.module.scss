@@ -4,77 +4,60 @@
   display: inline-block;
   margin-top: 15px;
   margin-right: 15px;
-
-  /* kicsit szélesebb kártya */
-  min-width: 340px;
-  max-width: 340px;
+  min-width: 360px;   /* + */
+  max-width: 460px;   /* + (régen 300/350 volt) */
   vertical-align: top;
-
-  @media (max-width: 480px) {
-    min-width: 100%;
-    max-width: 100%;
-  }
 }
 
 .documentCard {
   border-color: $ms-color-themeDark;
   border-top-width: 5px;
   width: 100%;
-  max-width: 380px;
-
-  /* rugalmas magasság, de ne legyen túl alacsony */
-  height: auto;
-  min-height: 160px;
-
+  max-width: 460px;   /* + több hely */
+  min-height: 140px;  /* + hogy biztosan elférjen a telefon */
   display: flex;
   flex-direction: row;
-  align-items: stretch;
+  align-items: flex-start; /* + ne középre ragassza a szöveget */
+  gap: 16px;               /* + térköz kép és szöveg között */
+  padding: 16px 20px;      /* kényelmesebb belső margó */
   justify-content: flex-start;
-
-  /* ésszerű belső margók (a régi 5rem túl nagy volt) */
-  padding: 16px 16px 12px 22px;
 }
 
 .bottomColor {
   background-color: $ms-color-themeDark;
   height: 5px;
-  margin-top: 10px;
+  margin-top: 10;
   width: 100%;
 }
 
-/* Hosszú név/titulus/department 2 sorig, szépen tördelve */
-.textOverflow {
+/* Csak azokra a sorokra, amiket 1 sorban szeretnénk elvágni */
+.truncateOne {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: normal;
-  word-break: break-word;
-
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
 }
 
-/* A jobb oldali szöveges rész */
 .personaDetails {
   display: flex;
   flex-direction: column;
-  row-gap: 0.25rem;
-  flex: 1 1 auto;
-  justify-content: flex-start; /* header fent, footer lent */
-}
-
-/* ÚJ: ezek kellenek a TSX-hez */
-.header {
-  margin-bottom: 6px;
-}
-.footer {
-  margin-top: 6px;
+  row-gap: 4px;     /* picit nagyobb sorköz */
+  min-width: 0;     /* fontos a truncáláshoz */
 }
 
 .others {
   color: #6c6c6c;
   display: flex;
   align-items: center;
-  column-gap: .4rem;
-  word-break: break-word;
+  min-width: 0;     /* fontos, hogy működjön az ellipsis */
+}
+
+.phone {
+  white-space: nowrap; /* a telefonszám SOHA ne törjön sorba és ne vágjuk le */
+  font-size: 12px;
+}
+
+.phoneIcon {
+  font-size: 12px;
+  flex: 0 0 auto;
+  margin-right: 5px;
 }
