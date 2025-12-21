@@ -2,16 +2,14 @@ import { WebPartContext } from "@microsoft/sp-webpart-base";
 import { sp } from '@pnp/sp';
 import { SearchResults, ISearchQuery, SortDirection } from '@pnp/sp/search';
 import { ISPServices } from "./ISPServices";
+import { MSGraphClientV3 } from '@microsoft/sp-http';
 
 /* =========================
    Filtering helpers (People Search)
    ========================= */
 
-// NÉV ELEJI PREFIXEK kizárása (kis/nagybetű nem számít)
 const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Test', 'Teszt'];
-
-// CSAK EZEK A DOMAINEK legyenek láthatók
-const ALLOWED_EMAIL_DOMAINS = ['value4real.com']; // <-- bővíthető: ['xy.com','contoso.com']
+const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
 
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
@@ -19,18 +17,16 @@ const shouldHideUserFromSearch = (u: any) => {
   return EXCLUDED_PREFIXES.some(p => name.startsWith(p.toLowerCase()));
 };
 
-// People Search-ből “email-szerű” érték kiválasztása
 const getBestEmailLike = (u: any): string => {
   const email = (u?.WorkEmail ?? '').trim();
-  const upnLike = (u?.UserName ?? u?.AccountName ?? '').trim(); // claims / UPN jellegű érték
+  const upnLike = (u?.UserName ?? u?.AccountName ?? '').trim();
   return email || upnLike;
 };
 
-// claims formátum kezelése és domain kinyerése
 const extractDomain = (val: string): string => {
   if (!val) return '';
   let s = val;
-  const pipeIdx = s.lastIndexOf('|'); // pl. i:0#.f|membership|user@contoso.com
+  const pipeIdx = s.lastIndexOf('|');
   if (pipeIdx >= 0) s = s.substring(pipeIdx + 1);
   const atIdx = s.lastIndexOf('@');
   return atIdx >= 0 ? s.substring(atIdx + 1).toLowerCase() : '';
@@ -45,11 +41,7 @@ export class spservices implements ISPServices {
   constructor(private context: WebPartContext) {
     sp.setup({
       spfxContext: {
-        pageContext: {
-          web: {
-            absoluteUrl: this.context.pageContext.web.absoluteUrl,
-          },
-        },
+        pageContext: { web: { absoluteUrl: this.context.pageContext.web.absoluteUrl } },
       },
     });
   }
@@ -65,36 +57,20 @@ export class spservices implements ISPServices {
     if (isInitialSearch) {
       qrytext = `FirstName:${searchString}* OR LastName:${searchString}*`;
     } else {
-      if (srchQry) {
-        qrytext = srchQry;
-      } else if (searchString) {
-        qrytext = searchString;
-      }
+      if (srchQry) qrytext = srchQry;
+      else if (searchString) qrytext = searchString;
       if (qrytext.length <= 0) qrytext = `*`;
     }
 
     const searchProperties: string[] = [
-      'FirstName',
-      'LastName',
-      'PreferredName',
-      'WorkEmail',
-      'OfficeNumber',
-      'PictureURL',
+      'FirstName','LastName','PreferredName','WorkEmail',
+      'OfficeNumber','PictureURL',
       'WorkPhone',
-      // mobil minden lehetséges neve:
-      'MobilePhone',
-      'CellPhone',
-      'SPS-CellPhone',
-      'SPS-MOBILEPHONE',
-      'JobTitle',
-      'Department',
-      'Skills',
-      'PastProjects',
-      'BaseOfficeLocation',
-      'SPS-UserType',
-      'GroupId',
-      'UserName',
-      'AccountName',
+      // mobil minden lehetséges neve People Search-ben:
+      'MobilePhone','CellPhone','SPS-CellPhone','SPS-MOBILEPHONE',
+      'JobTitle','Department','Skills','PastProjects',
+      'BaseOfficeLocation','SPS-UserType','GroupId',
+      'UserName','AccountName',
     ];
 
     try {
@@ -103,23 +79,24 @@ export class spservices implements ISPServices {
         RowLimit: 500,
         EnableInterleaving: true,
         SelectProperties: searchProperties,
-        SourceId: 'b09a7990-05ea-4af9-81ef-edfab16c4e31', // Local People Results
+        SourceId: 'b09a7990-05ea-4af9-81ef-edfab16c4e31',
         SortList: [{ Property: 'LastName', Direction: SortDirection.Ascending }],
       });
 
       const primary = (users?.PrimarySearchResults ?? []) as any[];
 
-      const filteredAndNormalized = primary
-        .filter(u => !shouldHideUserFromSearch(u)) // prefix
-        .filter(u => isAllowedDomain(u))           // domain
+      // 1) prefix + domain szűrés
+      let items = primary
+        .filter(u => !shouldHideUserFromSearch(u))
+        .filter(u => isAllowedDomain(u))
         .map(u => {
-          // fotó URL normalizálás
+          // 2) fotó normalizálás
           const email = (u?.WorkEmail || '').trim();
           const picture = email
             ? `/_layouts/15/userphoto.aspx?size=L&accountname=${encodeURIComponent(email)}`
             : u?.PictureURL;
 
-          // mobil egységesítése
+          // 3) mobil egységesítése a People Search mezőiből
           const unifiedMobile =
             (u?.MobilePhone ||
              u?.CellPhone ||
@@ -128,15 +105,30 @@ export class spservices implements ISPServices {
              ''
             ).toString().trim();
 
-          return {
-            ...u,
-            PictureURL: picture,
-            MobilePhone: unifiedMobile, // innen kezdve mindig legyen kitöltve, ha van bármelyik forrásban
-          };
+          return { ...u, PictureURL: picture, MobilePhone: unifiedMobile };
         });
 
-      // új példány visszaadása, nem írjuk felül a readonly mezőt helyben
-      const out = { ...users, PrimarySearchResults: filteredAndNormalized } as unknown as SearchResults;
+      // 4) Fallback Graphról: ahol még üres a MobilePhone, próbáljuk meg Entra-ból
+      const needGraph = items.filter(u => !u.MobilePhone && u.WorkEmail);
+      if (needGraph.length > 0) {
+        try {
+          const graphClient = await (this.context as any).msGraphClientFactory.getClient('3') as MSGraphClientV3;
+
+          // Egyszerű: per-user hívások (kisebb listáknál bőven elég)
+          await Promise.all(needGraph.map(async u => {
+            try {
+              const res = await graphClient
+                .api(`/users/${encodeURIComponent(u.WorkEmail)}`)
+                .select('mobilePhone')
+                .get();
+              const m = (res?.mobilePhone || '').toString().trim();
+              if (m) u.MobilePhone = m;
+            } catch { /* swallow */ }
+          }));
+        } catch { /* ha nincs consent, csak kihagyjuk a fallbacket */ }
+      }
+
+      const out = { ...users, PrimarySearchResults: items } as unknown as SearchResults;
       return out;
 
     } catch (error: any) {
