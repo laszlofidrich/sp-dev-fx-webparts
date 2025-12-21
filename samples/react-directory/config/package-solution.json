@@ -39,3 +39,6 @@
     "zippedPackage": "solution/react-directory.sppkg"
   }
 }
+"webApiPermissionRequests": [
+  { "resource": "Microsoft Graph", "scope": "User.Read.All" }
+]
