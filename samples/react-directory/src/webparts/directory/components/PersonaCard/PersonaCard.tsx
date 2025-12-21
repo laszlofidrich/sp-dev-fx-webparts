@@ -21,14 +21,17 @@ export class PersonaCard extends React.Component<
 > {
   constructor(props: IPersonaCardProps) {
     super(props);
+
     this.state = { livePersonaCard: undefined, pictureUrl: undefined };
   }
 
   public async componentDidMount(): Promise<void> {
-    const sharedLibrary = await this._loadSPComponentById(LIVE_PERSONA_COMPONENT_ID);
+    const sharedLibrary = await this._loadSPComponentById(
+      LIVE_PERSONA_COMPONENT_ID
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const livePersonaCard: any = sharedLibrary.LivePersonaCard;
-    this.setState({ livePersonaCard });
+    this.setState({ livePersonaCard: livePersonaCard });
   }
 
   private _LivePersonaCard(): JSX.Element {
@@ -37,53 +40,68 @@ export class PersonaCard extends React.Component<
       {
         serviceScope: this.props.context.serviceScope,
         legacyUpn: this.props.profileProperties.Email,
-        onCardOpen: () => { /* no-op */ },
-        onCardClose: () => { /* no-op */ },
+        onCardOpen: () => {
+          console.log('LivePersonaCard Open');
+        },
+        onCardClose: () => {
+          console.log('LivePersonaCard Close');
+        },
       },
       this._PersonaCard()
     );
   }
 
   private _PersonaCard(): JSX.Element {
-    const p = this.props.profileProperties;
+    // Ha később lesz külön MobilePhone a props-ban, itt tudsz fallback-et adni:
+    // const phone = this.props.profileProperties.MobilePhone || this.props.profileProperties.WorkPhone;
+    const phone = this.props.profileProperties.WorkPhone;
 
     return (
       <Card className={styles.documentCard}>
         <Avatar
-          name={p.DisplayName}
-          image={{ src: `${p.PictureUrl}` }}
+          name={this.props.profileProperties.DisplayName}
+          image={{
+            src: `${this.props.profileProperties.PictureUrl}`,
+          }}
           size={120}
           shape="square"
         />
 
         <div className={styles.personaDetails}>
-          {/* HEADER */}
-          <div className={styles.header}>
-            <Subtitle1 className={styles.textOverflow}>{p.DisplayName}</Subtitle1>
-            <Body1 className={`${styles.others} ${styles.textOverflow}`} style={{ fontWeight: 600 }}>
-              {p.Title}
-            </Body1>
-            <Text className={`${styles.others} ${styles.textOverflow}`}>
-              {p.Department}
-            </Text>
-          </div>
+          <Subtitle1 className={styles.truncateOne}>
+            {this.props.profileProperties.DisplayName}
+          </Subtitle1>
 
-          {/* FOOTER */}
-          <div className={styles.footer}>
-            {p.WorkPhone ? (
-              <div className={styles.others}>
-                <Call16Filled style={{ fontSize: '12px' }} />
-                <span style={{ marginLeft: 5, fontSize: '12px' }}>{p.WorkPhone}</span>
-              </div>
-            ) : null}
+          <Body1
+            className={`${styles.others} ${styles.truncateOne}`}
+            style={{ fontWeight: 600 }}
+          >
+            {this.props.profileProperties.Title}
+          </Body1>
 
-            {p.Location ? (
-              <div className={`${styles.others} ${styles.textOverflow}`}>
-                <Location16Filled style={{ fontSize: '12px' }} />
-                <span style={{ marginLeft: 5, fontSize: '12px' }}>{p.Location}</span>
-              </div>
-            ) : null}
-          </div>
+          <Text className={`${styles.others} ${styles.truncateOne}`}>
+            {this.props.profileProperties.Department}
+          </Text>
+
+          {phone ? (
+            <div className={styles.others}>
+              <Call16Filled className={styles.phoneIcon} />
+              <span className={styles.phone}>{phone}</span>
+            </div>
+          ) : (
+            ''
+          )}
+
+          {this.props.profileProperties.Location ? (
+            <div className={styles.others}>
+              <Location16Filled style={{ fontSize: '12px' }} />
+              <span style={{ marginLeft: 5, fontSize: '12px' }}>
+                {this.props.profileProperties.Location}
+              </span>
+            </div>
+          ) : (
+            ''
+          )}
         </div>
       </Card>
     );
@@ -93,18 +111,22 @@ export class PersonaCard extends React.Component<
   private async _loadSPComponentById(componentId: string): Promise<any> {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const component: any = await SPComponentLoader.loadComponentById(componentId);
+      const component: any = await SPComponentLoader.loadComponentById(
+        componentId
+      );
       return component;
     } catch (error) {
       Log.error(EXP_SOURCE, error);
-      throw new Error(error as any);
+      throw new Error(error as string);
     }
   }
 
   public render(): React.ReactElement<IPersonaCardProps> {
     return (
       <div className={styles.personaContainer}>
-        {this.state.livePersonaCard ? this._LivePersonaCard() : this._PersonaCard()}
+        {this.state.livePersonaCard
+          ? this._LivePersonaCard()
+          : this._PersonaCard()}
       </div>
     );
   }
