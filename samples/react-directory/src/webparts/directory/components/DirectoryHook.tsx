@@ -53,23 +53,16 @@ const useFluentStyles = makeStyles({
 });
 
 /* =========================
-   Safety-net filters
+   Safety-net filters (CONTAINS)
    ========================= */
 
-// Név eleji prefixek kizárása (kis/nagybetű mindegy)
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt','Test'];
+// Név eleji prefix helyett CONTAINS logika
+const EXCLUDED_TOKENS = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt', 'Test'];
 
-// Csak ezek a domainek legyenek láthatók (több is mehet)
-const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
-
-// Minimum characters before searching
-const MIN_SEARCH_LEN = 3;
-
-// Prefix szűrő
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
   if (!name) return false;
-  return EXCLUDED_PREFIXES.some((p) => name.startsWith(p.toLowerCase()));
+  return EXCLUDED_TOKENS.some(tok => name.includes(tok.toLowerCase()));
 };
 
 // E-mail/UPN-szerű érték kiválasztása
