@@ -60,7 +60,7 @@ const useFluentStyles = makeStyles({
 const MIN_SEARCH_LEN = 3;
 
 // csak ezek a domainek látszódjanak
-const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
+const ALLOWED_EMAIL_DOMAINS = ['value4real.com','ofysol.com'];
 
 // névben CONTAINS tiltó tokenek
 const EXCLUDED_TOKENS = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt', 'Test'];
