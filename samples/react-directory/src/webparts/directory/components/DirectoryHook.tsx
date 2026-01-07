@@ -56,7 +56,13 @@ const useFluentStyles = makeStyles({
    Safety-net filters (CONTAINS)
    ========================= */
 
-// Név eleji prefix helyett CONTAINS logika
+// legalább 3 karakter után keressünk
+const MIN_SEARCH_LEN = 3;
+
+// csak ezek a domainek látszódjanak
+const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
+
+// névben CONTAINS tiltó tokenek
 const EXCLUDED_TOKENS = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt', 'Test'];
 
 const shouldHideUserFromSearch = (u: any) => {
@@ -290,7 +296,7 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
       } else if (txt.length >= MIN_SEARCH_LEN) {
         _searchUsers(txt);
       } else {
-        // ensure no spinner stays on for 1-2 chars
+        // ensure no spinner stays on for 1–2 chars
         setstate((prev) => ({ ...prev, isLoading: false }));
       }
     }, 300);
@@ -338,7 +344,7 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
     _searchByAlphabets(true);
   }, [props]);
 
-  // Enter only triggers when >=3 chars
+  // Enter only triggers when >=3 chars (vagy üres -> reset)
   const onOptionSelect = (ev: any, data: OptionOnSelectData) => {
     _sortPeople(data.optionValue as string);
   };
