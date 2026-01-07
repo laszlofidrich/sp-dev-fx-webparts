@@ -62,6 +62,9 @@ const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt','Test']
 // Csak ezek a domainek legyenek láthatók (több is mehet)
 const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
 
+// Minimum characters before searching
+const MIN_SEARCH_LEN = 3;
+
 // Prefix szűrő
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
@@ -142,6 +145,7 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
                 PictureUrl: user.PictureURL,
                 Email: user.WorkEmail,
                 Department: user.Department,
+                // prefer MobilePhone if present
                 WorkPhone: user.MobilePhone || user.WorkPhone,
                 Location: user.OfficeNumber ? user.OfficeNumber : user.BaseOfficeLocation,
               }}
@@ -204,17 +208,26 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
     });
   };
 
+  // Hard guard: do nothing if less than 3 chars
   const _searchUsers = async (searchText: string): Promise<void> => {
     try {
-      setstate({ ...state, searchText, isLoading: true });
-      if (searchText.length > 0) {
+      const trimmed = (searchText || '').trim();
+      if (trimmed.length > 0 && trimmed.length < MIN_SEARCH_LEN) {
+        // stop spinner if we showed it earlier
+        setstate((prev) => ({ ...prev, isLoading: false }));
+        return;
+      }
+
+      setstate((prev) => ({ ...prev, searchText, isLoading: true }));
+
+      if (trimmed.length >= MIN_SEARCH_LEN) {
         const searchProps: string[] =
           props.searchProps && props.searchProps.length > 0
             ? props.searchProps.split(',')
             : ['FirstName', 'LastName', 'WorkEmail', 'Department'];
 
         let qryText = '';
-        const finalSearchText: string = searchText ? searchText.replace(/ /g, '+') : searchText;
+        const finalSearchText: string = trimmed.replace(/ /g, '+');
 
         if (props.clearTextSearchProps) {
           const tmpCTProps: string[] =
@@ -225,11 +238,7 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
           if (tmpCTProps.length > 0) {
             searchProps.forEach((srchprop, index) => {
               const ctPresent: any[] = tmpCTProps.filter((o) => o.toLowerCase() === srchprop.toLowerCase());
-              if (ctPresent.length > 0) {
-                qryText += `${srchprop}:${searchText}*`;
-              } else {
-                qryText += `${srchprop}:${finalSearchText}*`;
-              }
+              qryText += `${srchprop}:${ctPresent.length > 0 ? trimmed : finalSearchText}*`;
               if (index !== searchProps.length - 1) qryText += ' OR ';
             });
           } else {
@@ -254,37 +263,45 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
                 .filter((u: any) => isAllowedDomain(u))
             : [];
 
-        setstate({
-          ...state,
+        setstate((prev) => ({
+          ...prev,
           searchText,
           indexSelectedKey: '0',
           users: cleaned,
           isLoading: false,
           errorMessage: '',
           hasError: false,
-        });
+        }));
         setalphaKey('0');
       } else {
-        setstate({ ...state, searchText: '' });
+        // empty query -> back to alphabet A
+        setstate((prev) => ({ ...prev, searchText: '' }));
         await _searchByAlphabets(true);
       }
     } catch (err: any) {
-      setstate({ ...state, errorMessage: err.message, hasError: true });
+      setstate((prev) => ({ ...prev, errorMessage: err.message, hasError: true }));
     }
   };
 
   const _searchBoxChanged = (newvalue: string): void => {
     setCurrentPage(1);
-    setstate((prev) => ({ ...prev, searchText: newvalue }));
+    setstate((prev) => ({ ...prev, searchText: newvalue || '' }));
   };
 
+  // Debounce, and only fire when len==0 (reset) or len>=3
   useEffect(() => {
-    const debouncedSearch = setTimeout(() => {
-      if (state.searchText !== undefined) {
-        _searchUsers(state.searchText);
+    const t = setTimeout(() => {
+      const txt = (state.searchText || '').trim();
+      if (txt.length === 0) {
+        _searchUsers(''); // reset to alphabet
+      } else if (txt.length >= MIN_SEARCH_LEN) {
+        _searchUsers(txt);
+      } else {
+        // ensure no spinner stays on for 1-2 chars
+        setstate((prev) => ({ ...prev, isLoading: false }));
       }
     }, 300);
-    return () => clearTimeout(debouncedSearch);
+    return () => clearTimeout(t);
   }, [state.searchText]);
 
   const _sortPeople = async (sortField: string): Promise<void> => {
@@ -328,6 +345,7 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
     _searchByAlphabets(true);
   }, [props]);
 
+  // Enter only triggers when >=3 chars
   const onOptionSelect = (ev: any, data: OptionOnSelectData) => {
     _sortPeople(data.optionValue as string);
   };
@@ -335,7 +353,10 @@ const DirectoryHook: React.FC<IDirectoryProps> = (props) => {
   const handleSearchKeyPress = React.useCallback(
     (ev: React.KeyboardEvent<HTMLInputElement>) => {
       if (ev.key === 'Enter') {
-        _searchUsers(state.searchText);
+        const txt = (state.searchText || '').trim();
+        if (txt.length >= MIN_SEARCH_LEN || txt.length === 0) {
+          _searchUsers(txt);
+        }
       }
     },
     [state.searchText]
