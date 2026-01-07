@@ -21,7 +21,6 @@ export class PersonaCard extends React.Component<
 > {
   constructor(props: IPersonaCardProps) {
     super(props);
-
     this.state = { livePersonaCard: undefined, pictureUrl: undefined };
   }
 
@@ -31,7 +30,7 @@ export class PersonaCard extends React.Component<
     );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const livePersonaCard: any = sharedLibrary.LivePersonaCard;
-    this.setState({ livePersonaCard: livePersonaCard });
+    this.setState({ livePersonaCard });
   }
 
   private _LivePersonaCard(): JSX.Element {
@@ -52,7 +51,7 @@ export class PersonaCard extends React.Component<
   }
 
   private _PersonaCard(): JSX.Element {
-    // Ha később lesz külön MobilePhone a props-ban, itt tudsz fallback-et adni:
+    // If later you pass MobilePhone separately, you can prefer it here:
     // const phone = this.props.profileProperties.MobilePhone || this.props.profileProperties.WorkPhone;
     const phone = this.props.profileProperties.WorkPhone;
 
@@ -60,22 +59,21 @@ export class PersonaCard extends React.Component<
       <Card className={styles.documentCard}>
         <Avatar
           name={this.props.profileProperties.DisplayName}
-          image={{
-            src: `${this.props.profileProperties.PictureUrl}`,
-          }}
+          image={{ src: `${this.props.profileProperties.PictureUrl}` }}
           size={120}
           shape="square"
         />
 
         <div className={styles.personaDetails}>
-          <Subtitle1 className={styles.truncateOne}>
+          {/* Name: allow wrap (max 2 lines) + tooltip via title */}
+          <Subtitle1
+            className={styles.displayName}
+            title={this.props.profileProperties.DisplayName}
+          >
             {this.props.profileProperties.DisplayName}
           </Subtitle1>
 
-          <Body1
-            className={`${styles.others} ${styles.truncateOne}`}
-            style={{ fontWeight: 600 }}
-          >
+          <Body1 className={`${styles.others} ${styles.truncateOne}`} style={{ fontWeight: 600 }}>
             {this.props.profileProperties.Title}
           </Body1>
 
@@ -111,12 +109,10 @@ export class PersonaCard extends React.Component<
   private async _loadSPComponentById(componentId: string): Promise<any> {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const component: any = await SPComponentLoader.loadComponentById(
-        componentId
-      );
+      const component: any = await SPComponentLoader.loadComponentById(componentId);
       return component;
     } catch (error) {
-      Log.error(EXP_SOURCE, error);
+      Log.error(EXP_SOURCE, error as Error);
       throw new Error(error as string);
     }
   }
