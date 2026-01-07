@@ -1,5 +1,19 @@
 @import '~@fluentui/react/dist/sass/References.scss';
 
+.displayName {
+  /* több sor engedélyezése és vágás a 2. sor után */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;     /* max 2 sor */
+  -webkit-box-orient: vertical;
+
+  white-space: normal;       /* sortörés szóközöknél */
+  word-break: keep-all;      /* NE törje szavakon belül */
+  overflow-wrap: break-word; /* nagyon hosszú egyben írt nevek esetén mégis törhessen */
+  line-height: 1.2;
+}
+
 /* MINDEN kártya fix szélességű legyen */
 .personaContainer {
   display: inline-block;
