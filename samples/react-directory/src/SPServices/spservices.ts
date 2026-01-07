@@ -5,17 +5,18 @@ import { ISPServices } from "./ISPServices";
 import { MSGraphClientV3 } from '@microsoft/sp-http';
 
 /* =========================
-   Filtering helpers (People Search)
+   Filtering helpers (People Search) - CONTAINS
    ========================= */
 
-const EXCLUDED_PREFIXES = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Test', 'Teszt'];
-const ALLOWED_EMAIL_DOMAINS = ['value4real.com'];
+// Kizáró tokenek (bárhol a névben / title-ben, kis/nagybetű mindegy)
+const EXCLUDED_TOKENS = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt', 'Test'];
 
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
   if (!name) return false;
-  return EXCLUDED_PREFIXES.some(p => name.startsWith(p.toLowerCase()));
+  return EXCLUDED_TOKENS.some(tok => name.includes(tok.toLowerCase()));
 };
+
 
 const getBestEmailLike = (u: any): string => {
   const email = (u?.WorkEmail ?? '').trim();
