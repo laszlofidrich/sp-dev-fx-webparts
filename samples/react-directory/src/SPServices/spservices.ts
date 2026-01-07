@@ -5,11 +5,14 @@ import { ISPServices } from "./ISPServices";
 import { MSGraphClientV3 } from '@microsoft/sp-http';
 
 /* =========================
-   Filtering helpers (People Search) - CONTAINS
+   Szűrési segédek (People Search)
    ========================= */
 
-// Kizáró tokenek (bárhol a névben / title-ben, kis/nagybetű mindegy)
+// Névben CONTAINS tiltó tokenek
 const EXCLUDED_TOKENS = ['(X)', '(SZ)', 'ADM', 'guest', 'UPS', 'Teszt', 'Test'];
+
+// Csak ezek a domainek legyenek láthatók
+const ALLOWED_EMAIL_DOMAINS = ['value4real.com','ofysol.com']; // bővíthető: ['value4real.com','contoso.com']
 
 const shouldHideUserFromSearch = (u: any) => {
   const name = ((u?.PreferredName ?? u?.Title ?? '') as string).trim().toLowerCase();
